@@ -1,5 +1,7 @@
 """
-    Implements the ATPE algorithm. See https://www.electricbrain.io/blog/learning-to-optimize and https://www.electricbrain.io/blog/optimizing-optimization to learn more
+    Implements the ATPE algorithm. See
+    https://www.electricbrain.io/blog/learning-to-optimize and https://www.electricbrain.io/blog/optimizing-optimization
+    to learn more
 """
 
 __authors__ = "Bradley Arsenault"
@@ -22,8 +24,6 @@ import hyperopt
 import datetime
 import json
 import copy
-from .base import miscs_update_idxs_vals
-from pprint import pprint
 
 # Windows doesn't support opening a NamedTemporaryFile.
 # Solution inspired in https://stackoverflow.com/a/46501017/147507
@@ -235,7 +235,8 @@ class Hyperparameter:
                     subParam, self, self.root + "." + str(index)
                 ).getLog10Cardinality()
 
-                # Revert to linear at high and low values, for numerical stability. Check here: https://www.desmos.com/calculator/efkbbftd18 to observe
+                # Revert to linear at high and low values, for numerical stability.
+                # Check here: https://www.desmos.com/calculator/efkbbftd18 to observe
                 if (log10_cardinality - other_log10_cardinality) > 3:
                     log10_cardinality = log10_cardinality + 1
                 elif (other_log10_cardinality - log10_cardinality) > 3:
@@ -658,7 +659,9 @@ class ATPEOptimizer:
             import sklearn
         except ImportError:
             raise ImportError(
-                "You must install lightgbm and sklearn in order to use the ATPE algorithm. Please run `pip install lightgbm scikit-learn` and try again. These are not built in dependencies of hyperopt."
+                "You must install lightgbm and sklearn in order to use the ATPE "
+                "algorithm. Please run `pip install lightgbm scikit-learn` and try "
+                "again. These are not built in dependencies of hyperopt."
             )
 
         scalingModelData = json.loads(
@@ -767,49 +770,37 @@ class ATPEOptimizer:
                 vector = copy.copy(baseVector)[0].tolist()
                 atpeParamFeatures = self.atpeParameterCascadeOrdering[:atpeParamIndex]
                 for atpeParamFeature in atpeParamFeatures:
-                    # We have to insert a special value of -3 for any conditional parameters.
+                    # We have to insert a special value of -3 for any conditional
+                    # parameters.
                     if (
-                        atpeParamFeature == "resultFilteringAgeMultiplier"
-                        and atpeParams["resultFilteringMode"] != "age"
+                        (
+                            atpeParamFeature == "resultFilteringAgeMultiplier"
+                            and atpeParams["resultFilteringMode"] != "age"
+                        )
+                        or (
+                            atpeParamFeature == "resultFilteringLossRankMultiplier"
+                            and atpeParams["resultFilteringMode"] != "loss_rank"
+                        )
+                        or (
+                            atpeParamFeature == "resultFilteringRandomProbability"
+                            and atpeParams["resultFilteringMode"] != "random"
+                        )
+                        or (
+                            atpeParamFeature == "secondaryCorrelationMultiplier"
+                            and atpeParams["secondaryProbabilityMode"] != "correlation"
+                        )
+                        or (
+                            atpeParamFeature == "secondaryFixedProbability"
+                            and atpeParams["secondaryProbabilityMode"] != "fixed"
+                        )
+                        or (
+                            atpeParamFeature == "secondaryTopLockingPercentile"
+                            and atpeParams["secondaryLockingMode"] != "top"
+                        )
                     ):
-                        vector.append(
-                            -3
-                        )  # This is the default value inserted when parameters aren't relevant
-                    elif (
-                        atpeParamFeature == "resultFilteringLossRankMultiplier"
-                        and atpeParams["resultFilteringMode"] != "loss_rank"
-                    ):
-                        vector.append(
-                            -3
-                        )  # This is the default value inserted when parameters aren't relevant
-                    elif (
-                        atpeParamFeature == "resultFilteringRandomProbability"
-                        and atpeParams["resultFilteringMode"] != "random"
-                    ):
-                        vector.append(
-                            -3
-                        )  # This is the default value inserted when parameters aren't relevant
-                    elif (
-                        atpeParamFeature == "secondaryCorrelationMultiplier"
-                        and atpeParams["secondaryProbabilityMode"] != "correlation"
-                    ):
-                        vector.append(
-                            -3
-                        )  # This is the default value inserted when parameters aren't relevant
-                    elif (
-                        atpeParamFeature == "secondaryFixedProbability"
-                        and atpeParams["secondaryProbabilityMode"] != "fixed"
-                    ):
-                        vector.append(
-                            -3
-                        )  # This is the default value inserted when parameters aren't relevant
-                    elif (
-                        atpeParamFeature == "secondaryTopLockingPercentile"
-                        and atpeParams["secondaryLockingMode"] != "top"
-                    ):
-                        vector.append(
-                            -3
-                        )  # This is the default value inserted when parameters aren't relevant
+                        # This is the default value inserted when parameters aren't
+                        # relevant
+                        vector.append(-3)
                     elif atpeParamFeature in self.atpeParameterValues:
                         for value in self.atpeParameterValues[atpeParamFeature]:
                             vector.append(
@@ -862,9 +853,11 @@ class ATPEOptimizer:
                     ):
                         value[atpeParamValueIndex] = max(
                             value[atpeParamValueIndex], maxVal * 0.15
-                        )  # We still allow the non reccomended modes to get chosen 15% of the time
+                        )  # We still allow the non reccomended modes to get chosen 15%
+                        # of the time
 
-                    # Make a random weighted choice based on the normalized probabilities
+                    # Make a random weighted choice based on the normalized
+                    # probabilities
                     probabilities = value / numpy.sum(value)
                     chosen = numpy.random.choice(
                         a=self.atpeParameterValues[atpeParameter], p=probabilities
@@ -880,7 +873,8 @@ class ATPEOptimizer:
                     atpeParams[atpeParameter] = float(value)
 
                 atpeParamDetails[atpeParameter]["reason"] = {}
-                # If we are predicting a class, we get separate feature contributions for each class. Take the average
+                # If we are predicting a class, we get separate feature contributions
+                # for each class. Take the average
                 if atpeParameter in self.atpeParameterValues:
                     featureContributions = numpy.mean(
                         numpy.reshape(
@@ -901,7 +895,9 @@ class ATPEOptimizer:
                     for index in range(len(self.atpeModelFeatureKeys))
                 ]
                 contributions = sorted(contributions, key=lambda r: -r[1])
-                # Only focus on the top 10% of features, since it gives more useful information. Otherwise the total gets really squashed out over many features,
+                # Only focus on the top 10% of features, since it gives more useful
+                # information. Otherwise the total gets really squashed out over many
+                # features,
                 # because our model is highly regularized.
                 contributions = contributions[: int(len(contributions) / 10)]
                 total = numpy.sum([contrib[1] for contrib in contributions])
@@ -948,7 +944,7 @@ class ATPEOptimizer:
                     )
                 if atpeParameter == "secondaryTopLockingPercentile":
                     atpeParams["secondaryTopLockingPercentile"] = max(
-                        0, min(10.0, atpeParams["secondaryTopLockingPercentile"])
+                        0.0, min(10.0, atpeParams["secondaryTopLockingPercentile"])
                     )
 
             # Now blank out unneeded params so they don't confuse us
@@ -1219,7 +1215,8 @@ class ATPEOptimizer:
 
         return params.get("param")
 
-    def chooseRandomValueForParameter(self, parameter):
+    @staticmethod
+    def chooseRandomValueForParameter(parameter):
         if parameter.config.get("mode", "uniform") == "uniform":
             minVal = parameter.config["min"]
             maxVal = parameter.config["max"]
@@ -1262,7 +1259,8 @@ class ATPEOptimizer:
 
         return value
 
-    def computePartialResultStatistics(self, hyperparameterSpace, results):
+    @staticmethod
+    def computePartialResultStatistics(hyperparameterSpace, results):
         losses = numpy.array(
             sorted([result["loss"] for result in results if result["loss"] is not None])
         )
@@ -1369,9 +1367,9 @@ class ATPEOptimizer:
             statistics["correlation_best_percentile75_ratio"] = 0
             statistics["correlation_percentile5_percentile25_ratio"] = 0
         else:
-            bestCorrelation = numpy.percentile(
-                correlations, 100
-            )  # Correlations are in the opposite order of losses, higher correlation is considered "best"
+            # Correlations are in the opposite order of losses, higher correlation
+            # is considered "best"
+            bestCorrelation = numpy.percentile(correlations, 100)
             percentile5Correlation = numpy.percentile(correlations, 95)
             percentile25Correlation = numpy.percentile(correlations, 75)
             percentile50Correlation = numpy.percentile(correlations, 50)
@@ -1501,15 +1499,17 @@ class ATPEOptimizer:
         for stat, value in recent15PercentResult.items():
             statistics["recent_15%_" + stat] = value
 
-        # Although we have added lots of protection in the computePartialResultStatistics code, one last hedge against any NaN or infinity values coming up
-        # in our statistics
+        # Although we have added lots of protection in the
+        # computePartialResultStatistics code, one last hedge against any NaN or
+        # infinity values coming up in our statistics
         for key in statistics.keys():
             if math.isnan(statistics[key]) or math.isinf(statistics[key]):
                 statistics[key] = 0
 
         return statistics
 
-    def convertResultsToTrials(self, hyperparameterSpace, results):
+    @staticmethod
+    def convertResultsToTrials(hyperparameterSpace, results):
         trials = hyperopt.Trials()
 
         for resultIndex, result in enumerate(results):
@@ -1547,7 +1547,8 @@ class ATPEOptimizer:
             trials.insert_trial_doc(data)
         return trials
 
-    def convertTrialsToResults(self, hyperparameterSpace, trials):
+    @staticmethod
+    def convertTrialsToResults(hyperparameterSpace, trials):
         results = []
         for trialIndex, trial in enumerate(trials.trials):
             data = {
@@ -1587,7 +1588,8 @@ def suggest(new_ids, domain, trials, seed):
 
     results = optimizer.convertTrialsToResults(hyperparameterConfig, trials)
 
-    # If there is a loss value that is negative, then we must increment the values so they are all positive.
+    # If there is a loss value that is negative, then we must increment the values so
+    # they are all positive.
     # This is because ATPE has been optimized only for positive loss value
     if len(results) > 0:
         minVal = min(

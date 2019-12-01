@@ -254,6 +254,3 @@ class SuggestAlgo(ExprEvaluator):
         )
         idxs, vals = memo[self.expr]
         return idxs, vals
-
-
-# -- flake-8 abhors blank line EOF

@@ -26,7 +26,8 @@ try:
     import cloudpickle as pickler
 except Exception as e:
     logger.info(
-        'Failed to load cloudpickle, try installing cloudpickle via "pip install cloudpickle" for enhanced pickling support.'
+        'Failed to load cloudpickle, try installing cloudpickle via "pip install '
+        'cloudpickle" for enhanced pickling support.'
     )
     import six.moves.cPickle as pickler
 
@@ -139,7 +140,7 @@ class FMinIter(object):
             pickler.loads(msg)
             trials.attachments["FMinIter_Domain"] = msg
 
-    def serial_evaluate(self, N=-1):
+    def serial_evaluate(self, n=-1):
         for trial in self.trials._dynamic_trials:
             if trial["state"] == base.JOB_STATE_NEW:
                 trial["state"] = base.JOB_STATE_RUNNING
@@ -165,8 +166,8 @@ class FMinIter(object):
                     trial["state"] = base.JOB_STATE_DONE
                     trial["result"] = result
                     trial["refresh_time"] = coarse_utcnow()
-                N -= 1
-                if N == 0:
+                n -= 1
+                if n == 0:
                     break
         self.trials.refresh()
 
@@ -199,7 +200,7 @@ class FMinIter(object):
         else:
             self.serial_evaluate()
 
-    def run(self, N, block_until_done=True):
+    def run(self, n, block_until_done=True):
         """
         block_until_done  means that the process blocks until ALL jobs in
         trials are not in running or new state
@@ -220,7 +221,6 @@ class FMinIter(object):
             return self.trials.count_by_state_unsynced(unfinished_states)
 
         stopped = False
-        qlen = get_queue_len()
         with std_out_err_redirect_tqdm() as orig_stdout:
             # total_evals = N + qlen
             init_evals_done = get_n_done()
@@ -235,22 +235,16 @@ class FMinIter(object):
             ) as pbar:
 
                 all_trials_complete = False
-                while n_queued < N or (block_until_done and not all_trials_complete):
+                while n_queued < n or (block_until_done and not all_trials_complete):
                     qlen = get_queue_len()
                     while (
                         qlen < self.max_queue_len
-                        and n_queued < N
+                        and n_queued < n
                         and not self.is_cancelled
                     ):
-                        n_to_enqueue = min(self.max_queue_len - qlen, N - n_queued)
+                        n_to_enqueue = min(self.max_queue_len - qlen, n - n_queued)
                         new_ids = trials.new_trial_ids(n_to_enqueue)
                         self.trials.refresh()
-                        if 0:
-                            for d in self.trials.trials:
-                                print(
-                                    "trial %i %s %s"
-                                    % (d["tid"], d["state"], d["result"].get("status"))
-                                )
                         new_trials = algo(
                             new_ids,
                             self.domain,
@@ -294,7 +288,8 @@ class FMinIter(object):
                     if n_unfinished == 0:
                         all_trials_complete = True
 
-                    # From tqdm doc: `update(n)` n (int): Increment to add to the internal counter of iterations
+                    # From tqdm doc: `update(n)` n (int): Increment to add to the
+                    # internal counter of iterations
                     d_jobs = get_n_done() - pbar.n
                     if d_jobs > 0:
                         pbar.update(d_jobs)
@@ -408,6 +403,9 @@ def fmin(
         `memo`, and a Ctrl object for communication with this Trials
         object.
 
+    catch_eval_exceptions : bool, default False
+        Parameter to be passed to trials.fmin, see its docstring
+
     return_argmin : bool, default True
         If set to False, this function returns nothing, which can be useful
         for example if it is expected that `len(trials)` may be zero after
@@ -489,7 +487,8 @@ def fmin(
             )
         return trials.argmin
     elif len(trials) > 0:
-        # Only if there are some succesfull trail runs, return the best point in the evaluation space
+        # Only if there are some succesfull trail runs, return the best point in
+        # the evaluation space
         return space_eval(space, trials.argmin)
     else:
         return None
@@ -514,6 +513,3 @@ def space_eval(space, hp_assignment):
                 memo[node] = hp_assignment[label]
     rval = pyll.rec_eval(space, memo=memo)
     return rval
-
-
-# -- flake8 doesn't like blank last line
